@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Infra Diagnostic</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+
+        h1 i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .lead {
+            color: #666;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+
+        .card-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .card-text {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            transform: scale(1.05);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .stats-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center">
+            <h1>
+                <i class="fas fa-chart-line"></i> Infrastructure Diagnostic System
+            </h1>
+            <p class="lead">
+                Централизованная проверка и сбор данных с агентов
+            </p>
+        </div>
+
+        <!-- статистика -->
+        <div class="row" id="statsRow">
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <div class="stats-number" id="totalAgents">-</div>
+                    <div class="stats-label">Всего агентов</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <div class="stats-number" id="onlineAgents">-</div>
+                    <div class="stats-label">Онлайн</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <div class="stats-number" id="totalTasks">-</div>
+                    <div class="stats-label">Всего задач</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card text-center">
+                    <div class="stats-number" id="successRate">-</div>
+                    <div class="stats-label">Успешных</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- карточки переходов -->
+        <div class="row mt-4">
+            <div class="col-md-6 mb-4">
+                <div class="card text-center p-4" onclick="location.href='/agents'">
+                    <div class="card-icon">
+                        <i class="fas fa-robot" style="color: #667eea;"></i>
+                    </div>
+                    <h3 class="card-title">Агенты</h3>
+                    <p class="card-text">
+                        Просмотр всех агентов, их статус, управление и регистрация новых
+                    </p>
+                    <div>
+                        <span class="btn btn-custom">Перейти к агентам →</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card text-center p-4" onclick="location.href='/tasks'">
+                    <div class="card-icon">
+                        <i class="fas fa-tasks" style="color: #764ba2;"></i>
+                    </div>
+                    <h3 class="card-title">Задачи</h3>
+                    <p class="card-text">
+                        История выполнения задач, результаты и логи проверок
+                    </p>
+                    <div>
+                        <span class="btn btn-custom">Перейти к задачам →</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card text-center p-4" onclick="location.href='/connections'">
+                    <div class="card-icon">
+                        <i class="fas fa-project-diagram" style="color: #ff9800;"></i>
+                    </div>
+                    <h3 class="card-title">Связи</h3>
+                    <p class="card-text">Визуализация связей между агентами и сервисами</p>
+                    <div>
+                        <span class="btn btn-custom">Перейти →</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- инфо о системе -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info" style="background: #f8f9fa; border-left: 4px solid #667eea;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>О системе:</strong> Агенты получают задачи от центрального сервера, выполняют проверки и отправляют результаты обратно.
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        <i class="fas fa-check-circle"></i> Доступные проверки: информация о хосте, сетевые данные, проверка портов, открытые порты, обнаружение сервисов
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <i class="fas fa-shield-alt"></i> Инфраструктурная диагностика | Централизованный сбор данных
+        </div>
+    </div>
+
+    <!-- метрики -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card" style="background: white; border-radius: 20px; padding: 25px; margin: 0 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <h3 style="color: #333; border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 20px;">
+                    <i class="fas fa-chart-line"></i> Метрики системы
+                </h3>
+                <div class="row">
+                    <div class="col-md-7">
+                        <canvas id="tasksChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-5" style="text-align: center;">
+                        <canvas id="agentsChart" width="450" height="450" style="margin: 0 auto; display: block;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+
+                document.getElementById('totalAgents').innerText = stats.total_agents;
+                document.getElementById('onlineAgents').innerText = stats.online_agents;
+                document.getElementById('totalTasks').innerText = stats.total_tasks;
+                document.getElementById('successRate').innerText = stats.success_rate + '%';
+            } catch(e) {
+                console.error('Ошибка загрузки статистики:', e);
+            }
+        }
+
+        async function loadMetrics() {
+            try {
+                // Загружаем задачи для графика
+                const tasksResponse = await fetch('/api/tasks?limit=100');
+                const tasks = await tasksResponse.json();
+
+                const last7Days = [];
+                const completedByDay = [];
+                const failedByDay = [];
+
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
+                    last7Days.push(dateStr);
+
+                    const dayTasks = tasks.filter(t => {
+                        const taskDate = new Date(t.created_at);
+                        return taskDate.toDateString() === date.toDateString();
+                    });
+
+                    completedByDay.push(dayTasks.filter(t => t.status === 'done').length);
+                    failedByDay.push(dayTasks.filter(t => t.status === 'failed').length);
+                }
+
+                // Обновляем график задач
+                if (tasksChart) {
+                    tasksChart.data.labels = last7Days;
+                    tasksChart.data.datasets[0].data = completedByDay;
+                    tasksChart.data.datasets[1].data = failedByDay;
+                    tasksChart.update();
+                }
+
+                // Загружаем агентов для круговой диаграммы
+                const agentsResponse = await fetch('/api/agents');
+                const agents = await agentsResponse.json();
+                const onlineCount = agents.filter(a => a.status === 'online').length;
+                const offlineCount = agents.length - onlineCount;
+
+                if (agentsChart) {
+                    agentsChart.data.datasets[0].data = [onlineCount, offlineCount];
+                    agentsChart.update();
+                }
+            } catch(e) {
+                console.error('Ошибка загрузки метрик:', e);
+            }
+        }
+
+        // Загружаем сразу и обновляем каждые 5 секунд
+        loadStats();
+        loadMetrics();
+        setInterval(() => {
+            loadStats();
+            loadMetrics();
+        }, 5000);
+    </script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    let tasksChart, agentsChart;
+
+    async function loadMetrics() {
+        try {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+
+            const tasksResponse = await fetch('/api/tasks?limit=100');
+            const tasks = await tasksResponse.json();
+
+            const last7Days = [];
+            const completedByDay = [];
+            const failedByDay = [];
+
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
+                last7Days.push(dateStr);
+
+                const dayTasks = tasks.filter(t => {
+                    const taskDate = new Date(t.created_at);
+                    return taskDate.toDateString() === date.toDateString();
+                });
+
+                completedByDay.push(dayTasks.filter(t => t.status === 'done').length);
+                failedByDay.push(dayTasks.filter(t => t.status === 'failed').length);
+            }
+
+            if (tasksChart) tasksChart.destroy();
+            tasksChart = new Chart(document.getElementById('tasksChart'), {
+                type: 'bar',
+                data: {
+                    labels: last7Days,
+                    datasets: [
+                        {
+                            label: 'Успешно',
+                            data: completedByDay,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: '#28a745',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Ошибки',
+                            data: failedByDay,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: '#dc3545',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#333' } },
+                        title: { display: true, text: 'Задачи по дням', color: '#333' }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#333' }, title: { display: true, text: 'Дата', color: '#333' } },
+                        y: { ticks: { color: '#333' }, title: { display: true, text: 'Количество задач', color: '#333' } }
+                    }
+                }
+            });
+
+            const agentsResponse = await fetch('/api/agents');
+            const agents = await agentsResponse.json();
+            const onlineCount = agents.filter(a => a.status === 'online').length;
+            const offlineCount = agents.length - onlineCount;
+
+            if (agentsChart) agentsChart.destroy();
+            agentsChart = new Chart(document.getElementById('agentsChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Онлайн', 'Оффлайн'],
+                    datasets: [{
+                        data: [onlineCount, offlineCount],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#333' } },
+                        title: { display: true, text: 'Статус агентов', color: '#333' }
+                    }
+                }
+            });
+        } catch(e) {
+            console.error('Ошибка загрузки метрик:', e);
+        }
+    }
+
+    loadMetrics();
+    setInterval(loadMetrics, 30000);
+</script>
+
+</body>
+</html>

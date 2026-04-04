@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Задачи</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .container { background: white; border-radius: 20px; padding: 30px; margin-top: 30px; }
+        .badge-done { background: #28a745; color: white; padding: 5px 10px; border-radius: 20px; }
+        .badge-failed { background: #dc3545; color: white; padding: 5px 10px; border-radius: 20px; }
+        .badge-running { background: #17a2b8; color: white; padding: 5px 10px; border-radius: 20px; }
+        .badge-pending { background: #ffc107; padding: 5px 10px; border-radius: 20px; }
+        .result-json { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; font-family: monospace; max-height: 400px; overflow: auto; }
+        .modal-content { border-radius: 15px; }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="/" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;"><i class="fas fa-home"></i> Главная</a>
+            <h1><i class="fas fa-history"></i> История задач</h1>
+            <div style="width: 100px;"></div>
+        </div>
+
+        <!-- Блок очистки истории -->
+        <div class="card mb-4 p-3">
+            <h5><i class="fas fa-trash-alt"></i> Очистить историю задач</h5>
+            <div class="row mt-2">
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearTasks('hour')">За час</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearTasks('day')">За день</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearTasks('week')">За неделю</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearTasks('month')">За месяц</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-danger w-100" onclick="clearTasks('all')">Всё сразу</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Блок экспорта -->
+        <div class="card mb-4 p-3">
+            <h5><i class="fas fa-download"></i> Экспорт задач</h5>
+            <div class="row mt-2">
+                <div class="col-md-3">
+                    <a href="/api/tasks/export?format=json" class="btn btn-sm btn-success w-100">JSON</a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/api/tasks/export?format=csv" class="btn btn-sm btn-info w-100">CSV</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Таблица задач -->
+        <table class="table">
+            <thead>
+                <tr><th>ID</th><th>Агент</th><th>Тип</th><th>Статус</th><th>Создана</th><th></th></tr>
+            </thead>
+            <tbody id="tasksTable">
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.id }}</td>
+                    <td>{{ task.agent_id }}</td>
+                    <td>{{ task.type }}</td>
+                    <td><span class="badge-{{ task.status }} task-status" data-task-id="{{ task.id }}">{{ task.status }}</span></td>
+                    <td>{{ task.created_at[:19] if task.created_at else '-' }}</td>
+                    <td><button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">Детали</button>
+                    <button class="btn btn-sm btn-warning" onclick="compareTask({{ task.id }})" style="margin-left: 5px;"><i class="fas fa-code-branch"></i> Сравнить</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Модалка деталей -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Детали задачи #<span id="modalTaskId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="taskDetails">
+                    <div class="text-center"><div class="spinner-border"></div></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="copyResult()">Копировать результат</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTask = null;
+
+        async function viewTask(taskId) {
+            document.getElementById('modalTaskId').innerText = taskId;
+            document.getElementById('taskDetails').innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+
+            const response = await fetch(`/api/tasks/${taskId}`);
+            currentTask = await response.json();
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                return date.toLocaleString('ru-RU', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            function formatDuration(task) {
+                if (!task.started_at || !task.finished_at) return '-';
+                const start = new Date(task.started_at);
+                const finish = new Date(task.finished_at);
+                const seconds = (finish - start) / 1000;
+                if (seconds < 60) return seconds.toFixed(1) + ' сек';
+                if (seconds < 3600) return (seconds / 60).toFixed(1) + ' мин';
+                return (seconds / 3600).toFixed(1) + ' час';
+            }
+
+            let resultHtml = '';
+            if (currentTask.result) {
+                resultHtml = `<h6><i class="fas fa-database"></i> Результат:</h6><pre class="result-json">${JSON.stringify(currentTask.result, null, 2)}</pre>`;
+            }
+
+            let logsHtml = '';
+            if (currentTask.logs) {
+                logsHtml = `<h6 class="mt-3"><i class="fas fa-file-alt"></i> Логи:</h6><pre class="result-json" style="background:#f5f5f5;color:#333;">${currentTask.logs}</pre>`;
+            }
+
+            document.getElementById('taskDetails').innerHTML = `
+                <table class="table table-sm">
+                    <tr><th>ID:</th><td>${currentTask.id}</td></tr>
+                    <tr><th>Агент ID:</th><td>${currentTask.agent_id}</td></tr>
+                    <tr><th>Тип:</th><td>${currentTask.type}</td></tr>
+                    <tr><th>Статус:</th><td>${currentTask.status}</td></tr>
+                    <tr><th>Создана:</th><td>${formatDate(currentTask.created_at)}</td></tr>
+                    <tr><th>Начата:</th><td>${formatDate(currentTask.started_at)}</td></tr>
+                    <tr><th>Завершена:</th><td>${formatDate(currentTask.finished_at)}</td></tr>
+                    <tr><th>Длительность:</th><td>${formatDuration(currentTask)}</td></tr>
+                </table>
+                ${resultHtml}
+                ${logsHtml}
+            `;
+        }
+
+        function copyResult() {
+            if (currentTask && currentTask.result) {
+                navigator.clipboard.writeText(JSON.stringify(currentTask.result, null, 2));
+                alert('Результат скопирован');
+            } else {
+                alert('Нет результата');
+            }
+        }
+
+        async function clearTasks(period) {
+            let message = '';
+            if (period === 'hour') message = 'за последний час';
+            else if (period === 'day') message = 'за последний день';
+            else if (period === 'week') message = 'за последнюю неделю';
+            else if (period === 'month') message = 'за последний месяц';
+            else message = 'ВСЮ историю';
+
+            if (confirm(`Точно удалить задачи ${message}?`)) {
+                const response = await fetch(`/api/tasks/clear?period=${period}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Удалено ${data.deleted} задач`);
+                    location.reload();
+                } else {
+                    alert('Ошибка очистки');
+                }
+            }
+        }
+
+        // ========== ОБНОВЛЕНИЕ СТАТУСОВ В РЕАЛЬНОМ ВРЕМЕНИ ==========
+        async function updateTaskStatus(taskId, statusSpan) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/status`);
+                const data = await response.json();
+
+                if (statusSpan.innerText !== data.status) {
+                    statusSpan.className = `badge-${data.status} task-status`;
+                    statusSpan.innerText = data.status;
+
+                    // Если задача завершена, останавливаем обновление для этой задачи
+                    if (data.status === 'done' || data.status === 'failed') {
+                        return false; // остановить обновление
+                    }
+                }
+                return true; // продолжить обновление
+            } catch(e) {
+                console.error('Ошибка обновления статуса:', e);
+                return true;
+            }
+        }
+
+        // Запускаем обновление для всех активных задач
+        document.addEventListener('DOMContentLoaded', () => {
+            const activeIntervals = {};
+
+            const updateAllTasks = async () => {
+                const statusSpans = document.querySelectorAll('#tasksTable .task-status');
+
+                for (const span of statusSpans) {
+                    const status = span.innerText.trim();
+                    if (status === 'pending' || status === 'running') {
+                        const taskId = span.getAttribute('data-task-id');
+                        const continueUpdating = await updateTaskStatus(taskId, span);
+
+                        if (!continueUpdating && activeIntervals[taskId]) {
+                            clearInterval(activeIntervals[taskId]);
+                            delete activeIntervals[taskId];
+                        }
+                    }
+                }
+            };
+
+            // Обновляем каждые 2 секунды
+            setInterval(updateAllTasks, 1000);
+        });
+
+        async function compareTask(taskId) {
+            const response = await fetch(`/api/tasks/${taskId}/diff`);
+            const data = await response.json();
+
+            if (!data.has_prev) {
+                alert('Нет предыдущих запусков для сравнения');
+                return;
+            }
+
+            let diffHtml = `<h6>Сравнение с задачей #${data.prev_task_id} (${data.prev_created_at})</h6>`;
+
+            if (data.diff.length === 0) {
+                diffHtml += '<p class="text-success">✅ Изменений не обнаружено</p>';
+            } else {
+                diffHtml += '<table class="table table-sm"><thead><tr><th>Поле</th><th>Было</th><th>Стало</th></tr></thead><tbody>';
+                for (const d of data.diff) {
+                    diffHtml += `<tr>
+                        <td><strong>${d.field}</strong></td>
+                        <td class="text-danger">${JSON.stringify(d.old)}</td>
+                        <td class="text-success">${JSON.stringify(d.new)}</td>
+                    </tr>`;
+                }
+                diffHtml += '</tbody></table>';
+            }
+
+            // Показываем в модалке
+            document.getElementById('modalTaskId').innerText = `${taskId} (сравнение)`;
+            document.getElementById('taskDetails').innerHTML = diffHtml;
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        }
+    </script>
+</body>
+</html>

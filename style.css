@@ -1,0 +1,20 @@
+
+body { 
+    background-color: #f5f5f5; 
+}
+.card { 
+    margin-bottom: 20px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+}
+.badge-online { 
+    background-color: #28a745; 
+}
+.badge-offline { 
+    background-color: #dc3545; 
+}
+.table { 
+    background-color: white; 
+}
+.navbar { 
+    margin-bottom: 20px; 
+}
