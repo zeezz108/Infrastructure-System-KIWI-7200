@@ -1,4 +1,4 @@
-# Infrastructure Diagnostic System
+# Infrastructure System
 
 Централизованная система для диагностики инфраструктуры. Агенты получают задачи от сервера, выполняют проверки и возвращают результаты.
 
@@ -49,7 +49,7 @@ python backend/main_simple.py
 11) Визуализация связей
 
 ### 6. Архитектура проекта
-    UMIRHack 2026/
+    Project folder/
     backend/
         main_simple.py
         database.simple.py
